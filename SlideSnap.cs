@@ -1,5 +1,6 @@
-// SlideSnap - captura silenciosamente la pantalla cuando cambia (ideal para slides en Zoom/Teams).
-// Compilar con build.bat (usa el csc.exe incluido en Windows, sin dependencias).
+// SlideSnap - quietly grabs a screenshot whenever the screen changes.
+// Handy for saving every slide of a Zoom/Teams presentation.
+// Build it with build.bat (uses the C# compiler that ships with Windows, nothing to install).
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -18,7 +19,8 @@ static class Program
     [STAThread]
     static void Main()
     {
-        // DPI aware para que las coordenadas de cada monitor sean reales (pantallas con escalado).
+        // Without this, Windows lies about monitor sizes when display scaling is on,
+        // and we'd end up capturing the wrong area.
         try { SetProcessDpiAwarenessContext(new IntPtr(-4)); }
         catch { try { SetProcessDPIAware(); } catch { } }
         Application.EnableVisualStyles();
@@ -34,9 +36,9 @@ class MainForm : Form
     [DllImport("user32.dll")] static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint affinity);
 
     const int WM_HOTKEY = 0x0312;
-    const int TW = 160, TH = 90;          // tamaño de la miniatura usada para comparar
-    const int PIXEL_DIFF = 18;            // diferencia de luminancia para considerar un pixel "cambiado"
-    const int INTERVAL_MS = 700;
+    const int TW = 160, TH = 90;          // we compare tiny thumbnails, not full screenshots
+    const int PIXEL_DIFF = 18;            // how much a pixel's brightness must shift to count as "changed"
+    const int INTERVAL_MS = 700;          // how often we look at the screen
 
     Label lblFolder, lblSens, lblStatus;
     Button btnFolder, btnPlay, btnShot, btnOpen;
@@ -142,7 +144,7 @@ class MainForm : Form
         catch (Exception ex) { Status("Error al capturar: " + ex.Message); }
     }
 
-    // Numeración compartida entre capturas automáticas y manuales, para que queden en orden.
+    // Auto and manual shots share one counter so the files stay in order.
     string SaveShot(Bitmap bmp)
     {
         int n = Interlocked.Increment(ref count);
@@ -176,8 +178,9 @@ class MainForm : Form
         if (running) Text = string.Format("● SlideSnap ({0})", count);
     }
 
-    // Bucle de captura: guarda cuando la imagen difiere de la última guardada
-    // y además está "quieta" (evita capturar a mitad de una transición/animación).
+    // The main loop. We save a shot when the screen looks different from the last one
+    // we saved, but only once it has settled down - that way we don't catch a slide
+    // halfway through a transition, and a playing video doesn't flood the folder.
     void Loop(Rectangle b)
     {
         byte[] prev = null, lastSaved = null;
@@ -202,7 +205,7 @@ class MainForm : Form
                 }
                 catch (Exception ex)
                 {
-                    // p.ej. pantalla bloqueada o UAC: se reintenta en el siguiente ciclo
+                    // Usually the screen is locked or a UAC prompt is up. Just try again next round.
                     Status("Reintentando: " + ex.Message);
                 }
                 stopEvent.WaitOne(INTERVAL_MS);
@@ -210,6 +213,7 @@ class MainForm : Form
         }
     }
 
+    // Shrinks the screenshot down and keeps only brightness, which is all we need to spot changes.
     static byte[] Thumb(Bitmap src)
     {
         byte[] lum = new byte[TW * TH];
@@ -234,7 +238,7 @@ class MainForm : Form
         return lum;
     }
 
-    // Porcentaje de pixeles de la miniatura que cambiaron.
+    // What percentage of the thumbnail changed between two frames.
     static float Diff(byte[] a, byte[] b)
     {
         int changed = 0;
@@ -246,10 +250,11 @@ class MainForm : Form
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
-        // La ventana de SlideSnap no aparece en sus propias capturas (Windows 10 2004+).
+        // Keep our own window out of the screenshots (works on Windows 10 2004 and newer).
         try { SetWindowDisplayAffinity(Handle, 0x11); } catch { }
-        RegisterHotKey(Handle, 1, 0x0001 | 0x0002 | 0x4000, (uint)Keys.S); // Ctrl+Alt+S
-        RegisterHotKey(Handle, 2, 0x0001 | 0x0002 | 0x4000, (uint)Keys.A); // Ctrl+Alt+A
+        // Global hotkeys, so you can control it without leaving Zoom.
+        RegisterHotKey(Handle, 1, 0x0001 | 0x0002 | 0x4000, (uint)Keys.S); // Ctrl+Alt+S: play/stop
+        RegisterHotKey(Handle, 2, 0x0001 | 0x0002 | 0x4000, (uint)Keys.A); // Ctrl+Alt+A: manual shot
     }
 
     protected override void WndProc(ref Message m)

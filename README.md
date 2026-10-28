@@ -1,26 +1,32 @@
 # SlideSnap
 
-Pequeña app para Windows (14 KB, sin dependencias) que vigila un monitor y guarda silenciosamente una captura cada vez que la pantalla cambia de forma importante. Pensada para sacar una imagen de cada slide al ver presentaciones en Zoom, Teams, etc.
+A tiny Windows app (about 14 KB, no dependencies) that watches one of your monitors and quietly saves a screenshot whenever the screen changes in a meaningful way. It's made for grabbing every slide while you watch a presentation on Zoom, Teams and similar apps.
 
-## Uso
+## Download
 
-1. Abre `SlideSnap.exe` y elige la carpeta donde guardar las capturas.
-2. Elige la pantalla a vigilar (si tienes más de un monitor).
-3. Aprieta **PLAY**. Para detener, aprieta **STOP**.
+Grab `SlideSnap.exe` from the [latest release](../../releases/latest) and run it. There's nothing to install.
 
-Atajos globales (funcionan aunque otra app esté en primer plano):
+## How to use it
+
+1. Open `SlideSnap.exe` and pick the folder where the screenshots should go.
+2. Pick the screen to watch, if you have more than one monitor.
+3. Hit **PLAY**. Hit **STOP** when you're done.
+
+Global hotkeys work even while another app is in front:
 
 - **Ctrl+Alt+S**: play / stop
-- **Ctrl+Alt+A**: captura manual
+- **Ctrl+Alt+A**: take a screenshot manually
 
-## Cómo funciona
+## How it works
 
-- Revisa la pantalla cada 0.7 s y la compara con la última captura guardada usando una miniatura en escala de grises.
-- Solo guarda cuando la imagen cambió **y** ya está quieta, para no capturar a mitad de una transición ni guardar videos sin parar.
-- La barra de sensibilidad define qué porcentaje de la pantalla debe cambiar para considerarlo un slide nuevo.
-- La ventana de SlideSnap se excluye de sus propias capturas.
-- Las capturas se guardan en PNG como `slide_0001_AAAAMMDD_HHMMSS.png`.
+- It looks at the screen every 0.7 seconds and compares it to the last saved screenshot, using a small grayscale thumbnail.
+- It only saves when the image has changed **and** has stopped moving. This keeps it from catching a slide mid-transition or saving a playing video over and over.
+- The sensitivity slider sets what percentage of the screen has to change before it counts as a new slide.
+- The SlideSnap window is hidden from its own screenshots.
+- Screenshots are saved as PNG files named `slide_0001_YYYYMMDD_HHMMSS.png`.
 
-## Compilar
+## Building
 
-Ejecuta `build.bat`. Usa el compilador de C# que viene incluido en Windows (.NET Framework 4), no hace falta instalar nada.
+Run `build.bat`. It uses the C# compiler that comes with Windows (.NET Framework 4), so there's nothing extra to install.
+
+Note: the app's interface is in Spanish.
