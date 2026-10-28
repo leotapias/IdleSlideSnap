@@ -87,14 +87,14 @@ class MainForm : Form
         UpdateSens();
 
         // Off by default, so it records until you hit STOP.
-        chkAutoStop = new CheckBox { Text = "Auto-stop after", Location = new Point(14, 186), AutoSize = true };
-        numMinutes = new NumericUpDown { Location = new Point(130, 184), Size = new Size(60, 24), Minimum = 1, Maximum = 999, Value = 60, Enabled = false };
+        chkAutoStop = new CheckBox { Text = "Auto-stop after", Location = new Point(14, 242), AutoSize = true };
+        numMinutes = new NumericUpDown { Location = new Point(130, 240), Size = new Size(60, 24), Minimum = 1, Maximum = 999, Value = 60, Enabled = false };
         chkAutoStop.CheckedChanged += delegate { numMinutes.Enabled = chkAutoStop.Checked; UpdateTitle(); };
-        Label lblMinutes = new Label { Text = "minutes", Location = new Point(194, 187), AutoSize = true };
+        Label lblMinutes = new Label { Text = "minutes", Location = new Point(194, 243), AutoSize = true };
 
-        btnPlay = new Button { Location = new Point(12, 220), Size = new Size(266, 44), Font = new Font("Segoe UI", 12f, FontStyle.Bold) };
+        btnPlay = new Button { Location = new Point(12, 186), Size = new Size(266, 44), Font = new Font("Segoe UI", 12f, FontStyle.Bold) };
         btnPlay.Click += delegate { Toggle(); };
-        btnShot = new Button { Text = "Manual shot", Location = new Point(284, 220), Size = new Size(104, 44) };
+        btnShot = new Button { Text = "Manual shot", Location = new Point(284, 186), Size = new Size(104, 44) };
         btnShot.Click += delegate { ManualShot(); };
 
         lblStatus = new Label { Location = new Point(12, 278), Size = new Size(280, 34), ForeColor = Color.DimGray };
