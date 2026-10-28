@@ -1,4 +1,4 @@
-// SlideSnap - quietly grabs a screenshot whenever the screen changes.
+// IdleSlideSnap - quietly grabs a screenshot whenever the screen changes.
 // Handy for saving every slide of a Zoom/Teams presentation.
 // Build it with build.bat (uses the C# compiler that ships with Windows, nothing to install).
 using System;
@@ -8,6 +8,7 @@ using System.Drawing.Drawing2D;
 using System.Drawing.Imaging;
 using System.IO;
 using System.Runtime.InteropServices;
+using System.Text.RegularExpressions;
 using System.Threading;
 using System.Windows.Forms;
 
@@ -35,6 +36,7 @@ class MainForm : Form
     [DllImport("user32.dll")] static extern bool UnregisterHotKey(IntPtr hWnd, int id);
     [DllImport("user32.dll")] static extern bool SetWindowDisplayAffinity(IntPtr hWnd, uint affinity);
 
+    const string APP = "IdleSlideSnap";
     const int WM_HOTKEY = 0x0312;
     const int TW = 160, TH = 90;          // we compare tiny thumbnails, not full screenshots
     const int PIXEL_DIFF = 18;            // how much a pixel's brightness must shift to count as "changed"
@@ -54,7 +56,7 @@ class MainForm : Form
 
     public MainForm()
     {
-        Text = "SlideSnap";
+        Text = APP;
         Font = new Font("Segoe UI", 9f);
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
@@ -62,17 +64,17 @@ class MainForm : Form
         ClientSize = new Size(400, 285);
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
 
-        Controls.Add(new Label { Text = "Carpeta de destino:", Location = new Point(12, 12), AutoSize = true });
+        Controls.Add(new Label { Text = "Save screenshots to:", Location = new Point(12, 12), AutoSize = true });
         lblFolder = new Label { Location = new Point(12, 32), Size = new Size(290, 34), AutoEllipsis = true, ForeColor = Color.DimGray };
-        btnFolder = new Button { Text = "Cambiar...", Location = new Point(308, 30), Size = new Size(80, 26) };
+        btnFolder = new Button { Text = "Change...", Location = new Point(308, 30), Size = new Size(80, 26) };
         btnFolder.Click += delegate { ChooseFolder(); };
 
-        Controls.Add(new Label { Text = "Pantalla a vigilar:", Location = new Point(12, 72), AutoSize = true });
+        Controls.Add(new Label { Text = "Screen to watch:", Location = new Point(12, 72), AutoSize = true });
         cmbScreen = new ComboBox { Location = new Point(12, 92), Size = new Size(376, 24), DropDownStyle = ComboBoxStyle.DropDownList };
         Screen[] screens = Screen.AllScreens;
         for (int i = 0; i < screens.Length; i++)
-            cmbScreen.Items.Add(string.Format("Pantalla {0}  ({1}x{2}){3}", i + 1,
-                screens[i].Bounds.Width, screens[i].Bounds.Height, screens[i].Primary ? "  - principal" : ""));
+            cmbScreen.Items.Add(string.Format("Screen {0}  ({1}x{2}){3}", i + 1,
+                screens[i].Bounds.Width, screens[i].Bounds.Height, screens[i].Primary ? "  - main" : ""));
         cmbScreen.SelectedIndex = 0;
 
         lblSens = new Label { Location = new Point(12, 126), AutoSize = true };
@@ -82,16 +84,16 @@ class MainForm : Form
 
         btnPlay = new Button { Location = new Point(12, 186), Size = new Size(266, 44), Font = new Font("Segoe UI", 12f, FontStyle.Bold) };
         btnPlay.Click += delegate { Toggle(); };
-        btnShot = new Button { Text = "Captura manual", Location = new Point(284, 186), Size = new Size(104, 44) };
+        btnShot = new Button { Text = "Manual shot", Location = new Point(284, 186), Size = new Size(104, 44) };
         btnShot.Click += delegate { ManualShot(); };
 
         lblStatus = new Label { Location = new Point(12, 244), Size = new Size(280, 34), ForeColor = Color.DimGray };
-        btnOpen = new Button { Text = "Abrir carpeta", Location = new Point(298, 246), Size = new Size(90, 26) };
+        btnOpen = new Button { Text = "Open folder", Location = new Point(298, 246), Size = new Size(90, 26) };
         btnOpen.Click += delegate { if (folder != null && Directory.Exists(folder)) Process.Start("explorer.exe", "\"" + folder + "\""); };
 
         Controls.AddRange(new Control[] { lblFolder, btnFolder, cmbScreen, lblSens, trkSens, btnPlay, btnShot, lblStatus, btnOpen });
         SetRunningUI(false);
-        lblStatus.Text = "Listo. Atajos: Ctrl+Alt+S play/stop, Ctrl+Alt+A captura manual";
+        lblStatus.Text = "Ready. Hotkeys: Ctrl+Alt+S play/stop, Ctrl+Alt+A manual shot";
 
         Shown += delegate { ChooseFolder(); };
     }
@@ -99,18 +101,43 @@ class MainForm : Form
     void UpdateSens()
     {
         sensPercent = trkSens.Value * 0.5f;
-        lblSens.Text = string.Format("Cambio mínimo para capturar: {0:0.0}% de la pantalla  (izq = más sensible)", sensPercent);
+        lblSens.Text = string.Format("Minimum change to capture: {0:0.0}% of the screen  (left = more sensitive)", sensPercent);
     }
 
     void ChooseFolder()
     {
         using (FolderBrowserDialog dlg = new FolderBrowserDialog())
         {
-            dlg.Description = "¿Dónde guardar las capturas?";
+            dlg.Description = "Where should the screenshots be saved?";
             dlg.SelectedPath = folder ?? Environment.GetFolderPath(Environment.SpecialFolder.MyPictures);
-            if (dlg.ShowDialog(this) == DialogResult.OK) folder = dlg.SelectedPath;
+            if (dlg.ShowDialog(this) == DialogResult.OK)
+            {
+                folder = dlg.SelectedPath;
+                count = LastNumberIn(folder);
+                lblStatus.Text = count > 0
+                    ? string.Format("Found {0} existing slides, will continue from slide_{1:0000}.", count, count + 1)
+                    : "Ready. Hotkeys: Ctrl+Alt+S play/stop, Ctrl+Alt+A manual shot";
+            }
         }
-        lblFolder.Text = folder ?? "(sin elegir)";
+        lblFolder.Text = folder ?? "(none selected)";
+    }
+
+    // Looks for screenshots we saved here before, so numbering picks up where it left off
+    // instead of starting over at 0001.
+    static int LastNumberIn(string dir)
+    {
+        int max = 0;
+        try
+        {
+            foreach (string f in Directory.GetFiles(dir, "slide_*.png"))
+            {
+                Match m = Regex.Match(Path.GetFileName(f), @"^slide_(\d+)_");
+                int n;
+                if (m.Success && int.TryParse(m.Groups[1].Value, out n) && n > max) max = n;
+            }
+        }
+        catch { }
+        return max;
     }
 
     void Toggle()
@@ -124,7 +151,7 @@ class MainForm : Form
         worker = new Thread(delegate () { Loop(bounds); }) { IsBackground = true };
         worker.Start();
         SetRunningUI(true);
-        Status(string.Format("Grabando... {0} capturas", count));
+        Status(string.Format("Recording... {0} shots", count));
     }
 
     void ManualShot()
@@ -138,10 +165,10 @@ class MainForm : Form
             using (Graphics g = Graphics.FromImage(bmp))
             {
                 g.CopyFromScreen(b.Location, Point.Empty, b.Size);
-                Status(string.Format("{0}... {1} capturas (manual: {2})", running ? "Grabando" : "Detenido", count, SaveShot(bmp)));
+                Status(string.Format("{0}... {1} shots (manual: {2})", running ? "Recording" : "Stopped", count, SaveShot(bmp)));
             }
         }
-        catch (Exception ex) { Status("Error al capturar: " + ex.Message); }
+        catch (Exception ex) { Status("Couldn't take the screenshot: " + ex.Message); }
     }
 
     // Auto and manual shots share one counter so the files stay in order.
@@ -159,7 +186,7 @@ class MainForm : Form
         stopEvent.Set();
         if (worker != null) worker.Join(3000);
         SetRunningUI(false);
-        Status(string.Format("Detenido. {0} capturas guardadas en total.", count));
+        Status(string.Format("Stopped. {0} shots in the folder so far.", count));
     }
 
     void SetRunningUI(bool on)
@@ -168,14 +195,14 @@ class MainForm : Form
         btnPlay.BackColor = on ? Color.FromArgb(220, 60, 60) : Color.FromArgb(40, 160, 90);
         btnPlay.ForeColor = Color.White;
         btnFolder.Enabled = cmbScreen.Enabled = !on;
-        Text = on ? "● SlideSnap - grabando" : "SlideSnap";
+        Text = on ? "● " + APP + " - recording" : APP;
     }
 
     void Status(string s)
     {
         if (InvokeRequired) { BeginInvoke((MethodInvoker)delegate { Status(s); }); return; }
         lblStatus.Text = s;
-        if (running) Text = string.Format("● SlideSnap ({0})", count);
+        if (running) Text = string.Format("● {0} ({1})", APP, count);
     }
 
     // The main loop. We save a shot when the screen looks different from the last one
@@ -199,14 +226,14 @@ class MainForm : Form
                     {
                         string name = SaveShot(full);
                         lastSaved = t;
-                        Status(string.Format("Grabando... {0} capturas (última: {1})", count, name));
+                        Status(string.Format("Recording... {0} shots (last: {1})", count, name));
                     }
                     prev = t;
                 }
                 catch (Exception ex)
                 {
                     // Usually the screen is locked or a UAC prompt is up. Just try again next round.
-                    Status("Reintentando: " + ex.Message);
+                    Status("Retrying: " + ex.Message);
                 }
                 stopEvent.WaitOne(INTERVAL_MS);
             }
