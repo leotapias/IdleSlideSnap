@@ -20,7 +20,8 @@ Grab `IdleSlideSnap.exe` from the [latest release](../../releases/latest) and ru
 
 1. Open `IdleSlideSnap.exe` and pick the folder where the screenshots should go.
 2. Pick the screen to watch, if you have more than one monitor.
-3. Hit **PLAY**. Hit **STOP** when you're done.
+3. Hit **PLAY**. It keeps going until you hit **STOP**.
+4. Optional: tick **Auto-stop after** and set the minutes, and it will stop by itself when the time is up. The title bar shows a countdown. You can change the minutes while it's recording.
 
 Global hotkeys work even while another app is in front:
 

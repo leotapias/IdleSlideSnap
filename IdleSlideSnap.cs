@@ -46,6 +46,10 @@ class MainForm : Form
     Button btnFolder, btnPlay, btnShot, btnOpen;
     ComboBox cmbScreen;
     TrackBar trkSens;
+    CheckBox chkAutoStop;
+    NumericUpDown numMinutes;
+    System.Windows.Forms.Timer clock;
+    DateTime startedAt;
 
     string folder;
     Thread worker;
@@ -61,7 +65,7 @@ class MainForm : Form
         FormBorderStyle = FormBorderStyle.FixedSingle;
         MaximizeBox = false;
         StartPosition = FormStartPosition.CenterScreen;
-        ClientSize = new Size(400, 285);
+        ClientSize = new Size(400, 320);
         try { Icon = Icon.ExtractAssociatedIcon(Application.ExecutablePath); } catch { }
 
         Controls.Add(new Label { Text = "Save screenshots to:", Location = new Point(12, 12), AutoSize = true });
@@ -82,16 +86,30 @@ class MainForm : Form
         trkSens.ValueChanged += delegate { UpdateSens(); };
         UpdateSens();
 
-        btnPlay = new Button { Location = new Point(12, 186), Size = new Size(266, 44), Font = new Font("Segoe UI", 12f, FontStyle.Bold) };
+        // Off by default, so it records until you hit STOP.
+        chkAutoStop = new CheckBox { Text = "Auto-stop after", Location = new Point(14, 186), AutoSize = true };
+        numMinutes = new NumericUpDown { Location = new Point(130, 184), Size = new Size(60, 24), Minimum = 1, Maximum = 999, Value = 60, Enabled = false };
+        chkAutoStop.CheckedChanged += delegate { numMinutes.Enabled = chkAutoStop.Checked; UpdateTitle(); };
+        Label lblMinutes = new Label { Text = "minutes", Location = new Point(194, 187), AutoSize = true };
+
+        btnPlay = new Button { Location = new Point(12, 220), Size = new Size(266, 44), Font = new Font("Segoe UI", 12f, FontStyle.Bold) };
         btnPlay.Click += delegate { Toggle(); };
-        btnShot = new Button { Text = "Manual shot", Location = new Point(284, 186), Size = new Size(104, 44) };
+        btnShot = new Button { Text = "Manual shot", Location = new Point(284, 220), Size = new Size(104, 44) };
         btnShot.Click += delegate { ManualShot(); };
 
-        lblStatus = new Label { Location = new Point(12, 244), Size = new Size(280, 34), ForeColor = Color.DimGray };
-        btnOpen = new Button { Text = "Open folder", Location = new Point(298, 246), Size = new Size(90, 26) };
+        lblStatus = new Label { Location = new Point(12, 278), Size = new Size(280, 34), ForeColor = Color.DimGray };
+        btnOpen = new Button { Text = "Open folder", Location = new Point(298, 280), Size = new Size(90, 26) };
+
+        // Ticks once a second to count down the auto-stop timer.
+        clock = new System.Windows.Forms.Timer { Interval = 1000 };
+        clock.Tick += delegate
+        {
+            if (running && chkAutoStop.Checked && TimeLeft() <= TimeSpan.Zero) Stop();
+            else UpdateTitle();
+        };
         btnOpen.Click += delegate { if (folder != null && Directory.Exists(folder)) Process.Start("explorer.exe", "\"" + folder + "\""); };
 
-        Controls.AddRange(new Control[] { lblFolder, btnFolder, cmbScreen, lblSens, trkSens, btnPlay, btnShot, lblStatus, btnOpen });
+        Controls.AddRange(new Control[] { lblFolder, btnFolder, cmbScreen, lblSens, trkSens, chkAutoStop, numMinutes, lblMinutes, btnPlay, btnShot, lblStatus, btnOpen });
         SetRunningUI(false);
         lblStatus.Text = "Ready. Hotkeys: Ctrl+Alt+S play/stop, Ctrl+Alt+A manual shot";
 
@@ -147,6 +165,8 @@ class MainForm : Form
         Directory.CreateDirectory(folder);
         Rectangle bounds = Screen.AllScreens[cmbScreen.SelectedIndex].Bounds;
         running = true;
+        startedAt = DateTime.Now;
+        clock.Start();
         stopEvent.Reset();
         worker = new Thread(delegate () { Loop(bounds); }) { IsBackground = true };
         worker.Start();
@@ -182,11 +202,32 @@ class MainForm : Form
 
     void Stop()
     {
+        bool timeUp = chkAutoStop.Checked && TimeLeft() <= TimeSpan.Zero;
         running = false;
+        clock.Stop();
         stopEvent.Set();
         if (worker != null) worker.Join(3000);
         SetRunningUI(false);
-        Status(string.Format("Stopped. {0} shots in the folder so far.", count));
+        Status(string.Format("{0}. {1} shots in the folder so far.", timeUp ? "Time's up, stopped" : "Stopped", count));
+    }
+
+    // The minutes can be changed while recording; the countdown just follows along.
+    TimeSpan TimeLeft()
+    {
+        return startedAt.AddMinutes((double)numMinutes.Value) - DateTime.Now;
+    }
+
+    void UpdateTitle()
+    {
+        if (!running) { Text = APP; return; }
+        string title = string.Format("● {0} ({1})", APP, count);
+        if (chkAutoStop.Checked)
+        {
+            TimeSpan left = TimeLeft();
+            if (left < TimeSpan.Zero) left = TimeSpan.Zero;
+            title += string.Format(" - stops in {0}:{1:00}:{2:00}", (int)left.TotalHours, left.Minutes, left.Seconds);
+        }
+        Text = title;
     }
 
     void SetRunningUI(bool on)
@@ -195,14 +236,14 @@ class MainForm : Form
         btnPlay.BackColor = on ? Color.FromArgb(220, 60, 60) : Color.FromArgb(40, 160, 90);
         btnPlay.ForeColor = Color.White;
         btnFolder.Enabled = cmbScreen.Enabled = !on;
-        Text = on ? "● " + APP + " - recording" : APP;
+        UpdateTitle();
     }
 
     void Status(string s)
     {
         if (InvokeRequired) { BeginInvoke((MethodInvoker)delegate { Status(s); }); return; }
         lblStatus.Text = s;
-        if (running) Text = string.Format("● {0} ({1})", APP, count);
+        UpdateTitle();
     }
 
     // The main loop. We save a shot when the screen looks different from the last one
