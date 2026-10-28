@@ -8,6 +8,10 @@ A tiny Windows app (about 14 KB, no dependencies) that watches one of your monit
   <img src="docs/ui-recording.png" alt="IdleSlideSnap while recording" width="400">
 </p>
 
+## 100% offline
+
+IdleSlideSnap works completely offline. It never connects to the internet, has no telemetry, no accounts and no cloud. Your screenshots only go to the folder you choose on your own computer, and nothing else leaves your PC.
+
 ## Download
 
 Grab `IdleSlideSnap.exe` from the [latest release](../../releases/latest) and run it. There's nothing to install.
