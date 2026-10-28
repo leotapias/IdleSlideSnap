@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="270" viewBox="0 0 960 270" font-family="Segoe UI, system-ui, -apple-system, Helvetica, Arial, sans-serif">
+  <rect x="0.5" y="0.5" width="959" height="269" rx="12" fill="#ffffff" stroke="#cbd5e1"/>
+  <path d="M0.5 44 V12.5 a12 12 0 0 1 12 -12 H947.5 a12 12 0 0 1 12 12 V44 Z" fill="#f1f5f9"/>
+  <line x1="0.5" y1="44" x2="959.5" y2="44" stroke="#cbd5e1"/>
+  <path d="M22 16 h10 l3 3 h14 v15 h-27 z" fill="#f5b942"/>
+  <text x="60" y="29" font-size="14" fill="#1f2937">Pictures › Zoom - Quarterly review</text>
+
+  <!-- slide_0011: bullets -->
+  <g transform="translate(24,64)">
+    <rect width="168" height="100" rx="4" fill="#fff" stroke="#cbd5e1"/>
+    <rect x="12" y="12" width="90" height="10" rx="2" fill="#2563eb"/>
+    <rect x="24" y="35" width="110" height="5" rx="2" fill="#94a3b8"/>
+    <rect x="24" y="50" width="90" height="5" rx="2" fill="#94a3b8"/>
+    <rect x="24" y="65" width="120" height="5" rx="2" fill="#94a3b8"/>
+    <text x="84" y="124" font-size="13" fill="#1f2937" text-anchor="middle">slide_0011_….png</text>
+  </g>
+  <!-- slide_0012: pie -->
+  <g transform="translate(212,64)">
+    <rect width="168" height="100" rx="4" fill="#fff" stroke="#cbd5e1"/>
+    <rect x="12" y="12" width="60" height="10" rx="2" fill="#2563eb"/>
+    <circle cx="84" cy="60" r="28" fill="#60a5fa"/>
+    <path d="M84 60 L84 32 A28 28 0 0 1 108.2 74 Z" fill="#28a05a"/>
+    <text x="84" y="124" font-size="13" fill="#1f2937" text-anchor="middle">slide_0012_….png</text>
+  </g>
+  <!-- slide_0013: title slide -->
+  <g transform="translate(400,64)">
+    <rect width="168" height="100" rx="4" fill="#fff" stroke="#cbd5e1"/>
+    <rect x="34" y="38" width="100" height="12" rx="2" fill="#2563eb"/>
+    <rect x="54" y="58" width="60" height="6" rx="2" fill="#94a3b8"/>
+    <text x="84" y="124" font-size="13" fill="#1f2937" text-anchor="middle">slide_0013_….png</text>
+  </g>
+  <!-- slide_0014: bars -->
+  <g transform="translate(588,64)">
+    <rect width="168" height="100" rx="4" fill="#fff" stroke="#cbd5e1"/>
+    <rect x="12" y="12" width="70" height="10" rx="2" fill="#2563eb"/>
+    <rect x="30" y="58" width="18" height="30" fill="#60a5fa"/>
+    <rect x="58" y="40" width="18" height="48" fill="#60a5fa"/>
+    <rect x="86" y="48" width="18" height="40" fill="#60a5fa"/>
+    <rect x="114" y="28" width="18" height="60" fill="#28a05a"/>
+    <line x1="22" y1="88" x2="146" y2="88" stroke="#64748b" stroke-width="1.5"/>
+    <text x="84" y="124" font-size="13" fill="#1f2937" text-anchor="middle">slide_0014_….png</text>
+  </g>
+  <!-- slide_0015: picture -->
+  <g transform="translate(776,64)">
+    <rect width="168" height="100" rx="4" fill="#fff" stroke="#cbd5e1"/>
+    <rect x="12" y="12" width="144" height="76" fill="#e0f2fe"/>
+    <circle cx="130" cy="30" r="8" fill="#fbbf24"/>
+    <path d="M12 88 L60 42 L90 70 L115 52 L156 88 Z" fill="#28a05a"/>
+    <text x="84" y="124" font-size="13" fill="#1f2937" text-anchor="middle">slide_0015_….png</text>
+  </g>
+
+  <!-- session brackets -->
+  <path d="M24 212 v8 h356 v-8" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
+  <text x="202" y="242" font-size="13" fill="#64748b" text-anchor="middle">Earlier session</text>
+  <path d="M400 212 v8 h544 v-8" stroke="#28a05a" stroke-width="1.5" fill="none"/>
+  <text x="672" y="242" font-size="13" fill="#28a05a" text-anchor="middle">Today: numbering picks up at 0013</text>
+</svg>
